@@ -1,0 +1,34 @@
+#tract for census is the same as ookla geoid
+#STADEID
+
+library(readr)
+#Read in Ookla Data - substitute correct path here
+ookla_combined_ny <- read_csv(".../ookla_combined_ny.csv")
+
+nycensusdlmeans <- aggregate(ookla_combined_ny[, 2:8], list(ookla_combined_ny$'GEOID'), mean, na.rm = TRUE)
+nycensussums <- aggregate(ookla_combined_ny[, 5:6], list(ookla_combined_ny$'GEOID'), sum, na.rm = TRUE)
+
+names(nycensusdlmeans)[1] <- "GEOID"
+names(nycensussums)[1] <- "GEOID"
+
+require(data.table)
+census_ookla_join_pre <- as.data.table(merge(x = ookla_combined_ny, y = nycensusdlmeans, by = "GEOID"))
+census_ookla_join <- as.data.table(merge(x = census_ookla_join_pre, y = nycensussums, by = "GEOID"))
+
+census_ookla_join <- subset(census_ookla_join, 
+                            select = -c(
+                              quadkey, tests.x, devices.x, type.x, quarter.x, year, STATEFP, COUNTYFP, TRACTCE, AFFGEOID, NAME, LSAD, tests.y, devices.y, type.y, quarter.y, avg_d_kbps.y, avg_u_kbps.y, avg_lat_ms.y, tests, devices))
+
+
+#Read in census data. Again, substitute correct path
+fcc_census <- read_csv(".../fcc_477_census_tract_NY.csv")
+
+plot(ookla_combined_ny$avg_d_kbps)
+plot(fcc_census$max_dn)
+
+names(fcc_census)[1] <- "GEOID"
+
+census_ookla_join_1 <- as.data.table(merge(x = fcc_census, y = census_ookla_join, by = "GEOID"))
+
+#Create csv
+write.csv(census_ookla_join_1,".../census_ookla_join.csv", row.names = FALSE)
